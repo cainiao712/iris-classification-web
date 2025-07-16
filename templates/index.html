@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鸢尾花分类系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card { border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .feature-card { background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%); }
+        .result-card { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); }
+        .confidence-bar { height: 25px; border-radius: 12px; }
+        .visualization-img { max-width: 100%; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .img-container { position: relative; overflow: hidden; padding-top: 75%; /* 4:3 Aspect Ratio */ }
+        .img-container img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <!-- 标题卡片 -->
+                <div class="card p-4 mb-4 text-center bg-primary text-white">
+                    <h1 class="mb-0">鸢尾花种类识别系统</h1>
+                    <p class="mb-0 opacity-75">基于机器学习的智能分类工具</p>
+                </div>
+                
+                <!-- 错误提示 -->
+                {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                
+                <!-- 输入表单 -->
+                <div class="card p-4 mb-4">
+                    <h3 class="text-center mb-4">输入鸢尾花特征</h3>
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">花萼长度 (cm)</label>
+                                <input type="number" step="0.1" class="form-control" 
+                                       name="sepal_length" required 
+                                       value="{{ feature_values.sepal_length }}">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">花萼宽度 (cm)</label>
+                                <input type="number" step="0.1" class="form-control" 
+                                       name="sepal_width" required 
+                                       value="{{ feature_values.sepal_width }}">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">花瓣长度 (cm)</label>
+                                <input type="number" step="0.1" class="form-control" 
+                                       name="petal_length" required 
+                                       value="{{ feature_values.petal_length }}">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">花瓣宽度 (cm)</label>
+                                <input type="number" step="0.1" class="form-control" 
+                                       name="petal_width" required 
+                                       value="{{ feature_values.petal_width }}">
+                            </div>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                识别种类
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 结果展示 -->
+                {% if result_available %}
+                <div class="card result-card p-4 mb-4">
+                    <div class="text-center mb-4">
+                        <h2>识别结果</h2>
+                        <div class="display-4 text-primary mt-3">{{ species }}</div>
+                        <div class="text-muted">预测准确率: 98%</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4>各类别概率:</h4>
+                            <div class="mb-4">
+                                {% for species_name, confidence in confidences.items() %}
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>{{ species_name }}</span>
+                                        <span>{{ confidence }}</span>
+                                    </div>
+                                    <div class="progress confidence-bar">
+                                        <div class="progress-bar" role="progressbar" 
+                                             style="width: {{ confidence.split('%')[0] }}%; 
+                                                    background-color: 
+                                                    {% if species_name == 'setosa' %}#4CAF50
+                                                    {% elif species_name == 'versicolor' %}#2196F3
+                                                    {% else %}#9C27B0{% endif %};">
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h4>输入特征值:</h4>
+                            <div class="feature-grid">
+                                <div class="card p-3 text-center">
+                                    <div class="text-muted">花萼长度</div>
+                                    <div class="h4">{{ feature_values.sepal_length }} cm</div>
+                                </div>
+                                <div class="card p-3 text-center">
+                                    <div class="text-muted">花萼宽度</div>
+                                    <div class="h4">{{ feature_values.sepal_width }} cm</div>
+                                </div>
+                                <div class="card p-3 text-center">
+                                    <div class="text-muted">花瓣长度</div>
+                                    <div class="h4">{{ feature_values.petal_length }} cm</div>
+                                </div>
+                                <div class="card p-3 text-center">
+                                    <div class="text-muted">花瓣宽度</div>
+                                    <div class="h4">{{ feature_values.petal_width }} cm</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- 可视化部分 -->
+                <div class="card feature-card p-4 mb-4">
+                    <h3 class="text-center mb-4">鸢尾花特征可视化</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="img-container">
+                                <img src="{{ url_for('serve_static', filename='feature_target_relationships.png') }}" 
+                                     alt="特征关系图" class="visualization-img">
+                            </div>
+                            <div class="text-center mt-2">特征与目标关系</div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="img-container">
+                                <img src="{{ url_for('serve_static', filename='k_optimization_curve.png') }}" 
+                                     alt="K值优化曲线" class="visualization-img">
+                            </div>
+                            <div class="text-center mt-2">K值优化曲线</div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="img-container">
+                                <img src="{{ url_for('serve_static', filename='confusion_matrix.png') }}" 
+                                     alt="混淆矩阵" class="visualization-img">
+                            </div>
+                            <div class="text-center mt-2">混淆矩阵</div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="img-container">
+                                <img src="{{ url_for('serve_static', filename='feature_boxplots.png') }}" 
+                                     alt="特征箱线图" class="visualization-img">
+                            </div>
+                            <div class="text-center mt-2">特征箱线图</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 系统信息 -->
+                <div class="card p-4">
+                    <h3 class="text-center mb-3">系统信息</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>技术栈</h5>
+                            <ul>
+                                <li>Python 3.10</li>
+                                <li>Scikit-learn</li>
+                                <li>Flask</li>
+                                <li>Pandas</li>
+                                <li>Matplotlib</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>模型信息</h5>
+                            <ul>
+                                <li>算法: K-近邻分类器</li>
+                                <li>准确率: 98%</li>
+                                <li>特征数: 4</li>
+                                <li>类别数: 3</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <small class="text-muted">机器学习课程设计项目</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
