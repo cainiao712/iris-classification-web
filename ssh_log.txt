@@ -1,5 +1,0 @@
-OpenSSH_for_Windows_9.5p1, LibreSSL 3.8.2
-debug2: resolving "github.com" port 22
-debug1: Connecting to github.com [127.0.0.1] port 22.
-debug1: connect to address 127.0.0.1 port 22: Connection refused
-ssh: connect to host github.com port 22: Connection refused
